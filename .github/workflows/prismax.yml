@@ -1,0 +1,73 @@
+name: PrismaX Validation Monitor
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check-prismax:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check PrismaX uploads
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          import json
+          import hashlib
+          import requests
+
+          PRISMAX_URL = "https://data.prismaxserver.com/data/qa/uploads"
+          TELEGRAM_URL = (
+              f"https://api.telegram.org/bot"
+              f"{os.environ['TELEGRAM_BOT_TOKEN']}/sendMessage"
+          )
+
+          response = requests.get(PRISMAX_URL, timeout=20)
+          response.raise_for_status()
+
+          result = response.json()
+          uploads = result.get("data", [])
+
+          print(f"PrismaX uploads found: {len(uploads)}")
+
+          if not uploads:
+              print("No uploads currently available.")
+              raise SystemExit
+
+          # Create a fingerprint for the current upload data.
+          fingerprint = hashlib.sha256(
+              json.dumps(
+                  uploads,
+                  sort_keys=True,
+                  default=str
+              ).encode()
+          ).hexdigest()
+
+          # GitHub Actions runs are independent, so this first version
+          # alerts whenever uploads are present.
+          message = (
+              "🔔 NEW PRISMAX VALIDATION UPLOAD!\n\n"
+              f"Uploads detected: {len(uploads)}\n\n"
+              "👉 Open PrismaX Validation:\n"
+              "https://app.prismax.ai/data/review"
+          )
+
+          telegram_response = requests.post(
+              TELEGRAM_URL,
+              data={
+                  "chat_id": os.environ["TELEGRAM_CHAT_ID"],
+                  "text": message
+              },
+              timeout=20
+          )
+
+          telegram_response.raise_for_status()
+
+          print("Telegram notification sent.")
+          print("Fingerprint:", fingerprint)
+          PY
