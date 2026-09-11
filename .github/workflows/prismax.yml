@@ -21,6 +21,8 @@ jobs:
           import json
           import requests
 
+          print("Token loaded:", bool(os.environ.get("PRISMAX_TOKEN")))
+
           PRISMAX_URL = "https://data.prismaxserver.com/data/qa/uploads"
 
           headers = {
@@ -28,20 +30,15 @@ jobs:
               "Origin": "https://app.prismax.ai",
               "Referer": "https://app.prismax.ai/",
               "Accept": "*/*",
+              "User-Agent": "Mozilla/5.0",
           }
 
-          TELEGRAM_URL = (
-              f"https://api.telegram.org/bot"
-              f"{os.environ['TELEGRAM_BOT_TOKEN']}/sendMessage"
-          )
-
-          print("Token loaded:", bool(os.environ.get("PRISMAX_TOKEN")))
+          print("Checking PrismaX...")
 
           response = requests.get(
-          PRISMAX_URL,
-           headers=headers,
-           timeout=20
-          )
+              PRISMAX_URL,
+              headers=headers,
+              timeout=20
           )
 
           print("PrismaX status:", response.status_code)
@@ -58,6 +55,11 @@ jobs:
               print("No uploads currently available.")
               raise SystemExit
 
+          telegram_url = (
+              f"https://api.telegram.org/bot"
+              f"{os.environ['TELEGRAM_BOT_TOKEN']}/sendMessage"
+          )
+
           message = (
               "🔔 NEW PRISMAX VALIDATION UPLOAD!\n\n"
               f"Uploads detected: {len(uploads)}\n\n"
@@ -66,7 +68,7 @@ jobs:
           )
 
           telegram_response = requests.post(
-              TELEGRAM_URL,
+              telegram_url,
               data={
                   "chat_id": os.environ["TELEGRAM_CHAT_ID"],
                   "text": message
