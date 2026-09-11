@@ -35,10 +35,13 @@ jobs:
               f"{os.environ['TELEGRAM_BOT_TOKEN']}/sendMessage"
           )
 
+          print("Token loaded:", bool(os.environ.get("PRISMAX_TOKEN")))
+
           response = requests.get(
-              PRISMAX_URL,
-              headers=headers,
-              timeout=20
+          PRISMAX_URL,
+           headers=headers,
+           timeout=20
+          )
           )
 
           print("PrismaX status:", response.status_code)
